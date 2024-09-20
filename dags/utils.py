@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.orm.decl_api import DeclarativeMeta
 import requests
 from dags.config import error_logger, logger
-from typing import List
+from typing import List, Dict, Union
 
 def query_existing_data(model: declarative_base, 
                         data: list,
@@ -48,24 +48,31 @@ def query_existing_data(model: declarative_base,
         raise ValueError("Invalid data format. Data argument must be a list of dictionaries")
 
 
-def retrieve_country_code(country: str) -> str:
+def retrieve_country_code(country: str) -> Dict[str, str]:
 
     """
-    Function to retrieve the country code from a country name
-
+    Function to retrieve the country code from the restcountries API
     Args:
     country (str): Name of the country
 
-    Returns:
-    str: The country code
+    Returns: country_code (str): A country code for the given country
 
+    Examples:
+    >>> retrieve_country_code("Nigeria")
+    
+    {"status": "success", 
+    "message": "Country code for Nigeria is NG",
+    "country_codes": "NG"}
+    
     """
     try:
         
         url = f"https://restcountries.com/v3.1/name/{country}"
         response = requests.get(url)
         data = response.json()[0]
+        # print("data", data)
         country_code = data['cca2']
+
         logger.info({
             "status": "success",
             "message": f"Country code for {country} is {country_code}",
@@ -107,6 +114,7 @@ def retrieve_country_codes(
         url = f"https://restcountries.com/v3.1/name/{country_name}"
         response = requests.get(url)
         data = response.json()[0]
+        # print("data", data)
         country_code = data['cca2']
         logger.info({
             "status": "success",
@@ -169,9 +177,7 @@ def get_data_from_country_code(country_code: str,
     data = response.json()
 
     if data:
-        # print("data_from_response", data)
         data = data[0]
-
         for field in fields:
             weather_dict[field] = data.get(field)
 
