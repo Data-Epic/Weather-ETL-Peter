@@ -13,3 +13,5 @@ airflow.db
 logs
 var
 .astro
+test_local.py
+test.py
