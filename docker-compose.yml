@@ -1,5 +1,4 @@
 version: '3'
-
 services:
   postgres:
     image: postgres:13
@@ -11,53 +10,60 @@ services:
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
-      interval: 2m
+      interval: 5s
       retries: 5
-  
+
   airflow-init:
     build: .
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     env_file:
       - .env
     command: bash -c "airflow version && airflow db init && airflow users create --username admin \
               --password admin --firstname John \
               --lastname Doe --role Admin --email peteradekolu@gmail.com"
-    
+  
   airflow-webserver:
     build: .
     command: webserver
     ports:
       - "8080:8080"
     depends_on:
-      - airflow-init
-    # env_file:
-    #   - .env
-    environment:
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: 300
-      AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_TIMEOUT: 300
-      # AIRFLOW_HOME: ~/airflow
-      # PYTHONPATH: /opt/airflow/src
+      airflow-init:
+        condition: service_completed_successfully
+    env_file:
+      - .env
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-      interval: 2m
+      interval: 1m
       timeout: 30s
       retries: 5
-
+      start_period: 30s
+  
   airflow-scheduler:
     build: .
     command: scheduler
     depends_on:
-      - airflow-webserver
-    # env_file:
-    #   - .env
-    environment:
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      # PYTHONPATH: /opt/airflow/src
+      airflow-webserver:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+
+  airflow-triggerer:
+    build: .
+    command: triggerer
+    depends_on:
+      airflow-webserver:
+        condition: service_healthy
+    env_file:
+      - .env
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
