@@ -1,9 +1,10 @@
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# from decouple import config
 import logging
 from dags.logger_config import log_file_path, error_log_file_path
+from typing import List
+from airflow.models import Variable
 
 # set up logging
 logging.basicConfig(
@@ -21,23 +22,23 @@ logger_handler = logging.FileHandler(log_file_path)
 logger = logging.getLogger("logger")
 logger.addHandler(logger_handler)
 
-# API_KEY = config('API_KEY')
-# CITY_NAMES = config('CITY_NAMES')
-# COUNTRY_NAMES= config('COUNTRY')
-# FIELDS = config('FIELDS')
-# WEATHER_FIELDS_EXCLUDE = config('WEATHER_FIELDS_EXCLUDE')
-# DATABASE_URL = config('DATABASE_URL')
+API_KEY = os.getenv("API_KEY")
+CITY_NAMES = os.getenv("CITY_NAMES")
+FIELDS = os.getenv("FIELDS")
+WEATHER_FIELDS_EXCLUDE = os.getenv("WEATHER_FIELDS_EXCLUDE")
+DATABASE_URL = os.getenv("DATABASE_URL")
+COUNTRY_NAMES = os.getenv("COUNTRY_NAMES")
 
-API_KEY = "dba8d0d78964f7e8c91edf04f94e66b9"
-CITY_NAMES = "lagos,ibadan,kano,accra"
-COUNTRY_NAMES= "nigeria,ghana"
-FIELDS = "name,lat,lon,country,state"
-WEATHER_FIELDS_EXCLUDE = "minutely,hourly,daily,alerts"
-DATABASE_URL = "postgresql+psycopg2://postgres:admin@localhost/weather_db"
+AIRFLOW_API_KEY = Variable.get("API_KEY", default_var=API_KEY)
+AIRFLOW_CITY_NAMES = Variable.get("CITY_NAMES", default_var=CITY_NAMES)
+AIRFLOW_COUNTRY_NAMES = Variable.get("COUNTRY_NAMES", default_var=COUNTRY_NAMES)
+AIRFLOW_FIELDS = Variable.get("FIELDS", default_var=FIELDS)
+AIRFLOW_WEATHER_FIELDS_EXCLUDE = Variable.get("WEATHER_FIELDS_EXCLUDE", default_var=WEATHER_FIELDS_EXCLUDE)
+AIRFLOW_DATABASE_URL = Variable.get("DATABASE_URL", default_var=DATABASE_URL)
 
 def process_var(var:list) -> list:
     """
-    Process the environmental variables from a string to a list of strings if 
+    Process the environmental variable from a string to a list of strings if 
     there is a comma in the string
     
     Args: var(list) 
@@ -52,10 +53,8 @@ def process_var(var:list) -> list:
 
 CITY_NAMES = process_var(CITY_NAMES)
 FIELDS = process_var(FIELDS)
-WEATHER_FIELDS_EXCLUDE = process_var(WEATHER_FIELDS_EXCLUDE)
 COUNTRY_NAMES = process_var(COUNTRY_NAMES)
 
-print("city_names", CITY_NAMES, type(CITY_NAMES))
-print("country_name", COUNTRY_NAMES, type(COUNTRY_NAMES))
-print("fields", FIELDS, type(FIELDS))
-print("weather_fields_exclude", WEATHER_FIELDS_EXCLUDE, type(WEATHER_FIELDS_EXCLUDE))
+AIRFLOW_CITY_NAMES = process_var(AIRFLOW_CITY_NAMES)
+AIRFLOW_FIELDS = process_var(AIRFLOW_FIELDS)
+AIRFLOW_COUNTRY_NAMES = process_var(AIRFLOW_COUNTRY_NAMES)
