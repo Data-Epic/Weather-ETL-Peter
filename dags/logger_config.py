@@ -67,8 +67,8 @@ def create_log_file(
         raise ValueError("Invalid input arguments. Input arguments must be strings")
 
 
-log_file_name = "quote_manager.log"
-error_log_file_name = "quote_manager_error.log"
+log_file_name = "info.log"
+error_log_file_name = "error.log"
 var_dir = "var"
 log_file_path, error_log_file_path = create_log_file(
     log_file_name, error_log_file_name, var_dir
