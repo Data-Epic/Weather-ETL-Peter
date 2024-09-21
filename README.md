@@ -243,7 +243,7 @@ The processed weather records are loaded into the database using a delete-write 
 
 **Database Diagram:**
 
-![](images\image.png)
+![db_diagram](images\image.png)
 
 # Weather ETL DAG Explanation
 
