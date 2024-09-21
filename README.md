@@ -337,3 +337,11 @@ Each task is dependent on the output of the previous task, creating a linear wor
 Dag Workflow
 ![Airflow DAG Success](images/latest_dag.jpg)
 
+Airflow Variables
+![Airflow Variables Success](images/dag_variables.jpg)
+
+Database Query
+![Database Query](images/db_query.jpg)
+
+
+
