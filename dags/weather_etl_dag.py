@@ -35,7 +35,6 @@ def get_country_code(countries:
     }
     """
 
-    
     if isinstance(countries, str):
         country = countries.capitalize()
         country_code = retrieve_country_code(country)['country_codes']
@@ -73,7 +72,7 @@ def get_country_code(countries:
         }
              
 @task()
-def get_current_weather(country_codes: Union[list, str], 
+def get_geographical_data(country_codes: Union[list, str], 
                         city_names: List[str],
                         fields: list,
                         api_key: str = AIRFLOW_API_KEY) -> Dict[str, Union[str, List[dict]]]:
@@ -92,12 +91,12 @@ def get_current_weather(country_codes: Union[list, str],
     Example: {
     "status": "success",
     "message": "Current weather information for {city_names} has been retrieved from the API",
-    "weather_records" : [ {'lat': 6.46, 'lon': 3.39,
-                        'timezone': 'Africa/Lagos',
-                        'timezone_offset': 3600,
-                        'current': {'dt': 1726747705, 'sunrise': 1726724175, '......': '......' } 
-    ]
-    } 
+    "weather_records" : [ {'lat': 6.46, 
+                            'lon': 3.39,
+                          'country': 'Nigeria',
+                            'state': 'Lagos',
+
+                        }]
     
     """
     if isinstance(city_names, List):
@@ -156,7 +155,7 @@ def get_current_weather(country_codes: Union[list, str],
         }
 
 @task()   
-def retrieve_weather_fields(weather_records: List[dict]) -> Dict[str, Union[str, List[dict]]]:
+def restructure_geographical_data(weather_records: List[dict]) -> Dict[str, Union[str, List[dict]]]:
     """
     This function is used to retrieve the fields of the weather records;
     longitude and latitude of the cities
@@ -237,7 +236,7 @@ def retrieve_weather_fields(weather_records: List[dict]) -> Dict[str, Union[str,
         }
 
 @task()
-def get_weather_records(weather_fields_dict: Dict[str, Union[List[dict],
+def process_geographical_records(weather_fields_dict: Dict[str, Union[List[dict],
                                                               List[tuple]]]) -> List[dict]:
     """
     This function is used to get the weather records from the retrieve weather fields dictionary
@@ -274,7 +273,7 @@ def get_weather_records(weather_fields_dict: Dict[str, Union[List[dict],
         }
 
 @task()
-def get_long_lat(weather_fields: Dict[str, Union[str, List[dict]]]) -> List[tuple]:
+def get_longitude_latitude(weather_fields: Dict[str, Union[str, List[dict]]]) -> List[tuple]:
     """
     This function is used to get the longitude and latitude of the cities from the weather fields
 
@@ -302,7 +301,7 @@ def get_long_lat(weather_fields: Dict[str, Union[str, List[dict]]]) -> List[tupl
         }
 
 @task()
-def merge_weather_data(
+def merge_current_weather_data(
     lon_lat: List[tuple],
     excluded_fields: str,
     weather_fields: List[dict],
@@ -346,9 +345,6 @@ def merge_weather_data(
                 url = f"https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude={excluded_fields}&appid={api_key}"
                 response = requests.get(url)
                 data = response.json()
-
-                #print("data", data)
-
                 weather_dict = {}
                 for key in data.keys():
                     weather_dict[key] = data[key] 
@@ -545,17 +541,16 @@ def load_records_to_database(weather_data: List[dict]):
         }
 
 @dag(start_date=datetime(2024, 9, 19),
-        schedule=timedelta(hours=1),
-        description="Weather ETL DAG that fetches weather data from the OpenWeather API, transforms the data and loads it into a Postgres database, It runs every hour",
+        description="Weather ETL DAG that fetches weather data from the OpenWeather API, transforms the data and loads it into a Postgres database",
         catchup=False, tags=['weather'],
         max_active_runs=1, render_template_as_native_obj=True) 
 def weather_etl_dag():
     get_country_codes = get_country_code()['country_codes']
-    get_weather_info = get_current_weather(get_country_codes, AIRFLOW_CITY_NAMES, AIRFLOW_FIELDS)['weather_records']
-    weather_fields_dict = retrieve_weather_fields(get_weather_info)['weather_fields']
-    weather_fields_records = get_weather_records(weather_fields_dict)
-    long_lat = get_long_lat(weather_fields_dict)
-    merging_weather_data = merge_weather_data(
+    get_weather_info = get_geographical_data(get_country_codes, AIRFLOW_CITY_NAMES, AIRFLOW_FIELDS)['weather_records']
+    weather_fields_dict = restructure_geographical_data(get_weather_info)['weather_fields']
+    weather_fields_records = process_geographical_records(weather_fields_dict)
+    long_lat = get_longitude_latitude(weather_fields_dict)
+    merging_weather_data = merge_current_weather_data(
             long_lat, 
             AIRFLOW_WEATHER_FIELDS_EXCLUDE,
             weather_fields_records,
