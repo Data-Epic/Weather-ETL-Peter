@@ -250,8 +250,7 @@ The processed weather records are loaded into the database using a delete-write 
 1. DAG Definition:
 The DAG is defined with the following parameters:
 - Start date: September 19, 2024
-- Schedule: Runs every hour
-- Description: "Weather ETL DAG that fetches weather data from the OpenWeather API, transforms the data and loads it into a Postgres database, It runs every hour"
+- Description: "Weather ETL DAG that fetches weather data from the OpenWeather API, transforms the data and loads it into a Postgres database"
 - Tags: ['weather']
 - Max active runs: 1
 - Render template as native object: True
@@ -262,23 +261,23 @@ a) get_country_code:
 - Retrieves country codes for the specified countries.
 - Returns a dictionary with status, message, and country codes.
 
-b) get_current_weather:
+b) get_geographical_data:
 - Fetches current weather information for specified cities using country codes.
 - Returns a dictionary with weather records for each city.
 
-c) retrieve_weather_fields:
-- Extracts relevant fields from the weather records.
-- Returns a dictionary with weather fields and longitude/latitude data.
+c) restructure_geographical_data:
+- Extracts relevant fields from the geographical records.
+- Returns a dictionary with geographical fields and longitude/latitude data.
 
-d) get_weather_records:
-- Extracts the weather fields (city, country, state) from the weather_fields_dict.
+d) process_geographical_records:
+- Extracts the weather fields (city, country, state) from the geographical_fields_dict.
 
-e) get_long_lat:
-- Extracts the longitude and latitude data from the weather_fields_dict.
+e) get_longitude_latitude:
+- Extracts the latitude and longitude data from the geographical_fields_dict.
 
-f) merge_weather_data:
-- Combines the weather data from the API with the previously retrieved country and state information.
-- Returns a list of dictionaries with complete weather information for each city.
+f) merge_current_weather_data:
+- Combines the current weather data from the API with the previously retrieved country and state information.
+- Returns a list of dictionaries with complete current weather information for each city.
 
 g) get_merged_weather_records:
 - Extracts the merged weather records from the merge_weather_data task output.
@@ -298,11 +297,11 @@ The DAG is structured as follows:
 ```python
 def weather_etl_dag():
     get_country_codes = get_country_code()['country_codes']
-    get_weather_info = get_current_weather(get_country_codes, AIRFLOW_CITY_NAMES, AIRFLOW_FIELDS)['weather_records']
-    weather_fields_dict = retrieve_weather_fields(get_weather_info)['weather_fields']
-    weather_fields_records = get_weather_records(weather_fields_dict)
-    long_lat = get_long_lat(weather_fields_dict)
-    merging_weather_data = merge_weather_data(
+    get_weather_info = get_geographical_data(get_country_codes, AIRFLOW_CITY_NAMES, AIRFLOW_FIELDS)['weather_records']
+    weather_fields_dict = restructure_geographical_data(get_weather_info)['weather_fields']
+    weather_fields_records = process_geographical_records(weather_fields_dict)
+    long_lat = get_longitude_latitude(weather_fields_dict)
+    merging_weather_data = merge_current_weather_data(
             long_lat, 
             AIRFLOW_WEATHER_FIELDS_EXCLUDE,
             weather_fields_records,
@@ -318,10 +317,10 @@ weather_dag_instance = weather_etl_dag()
 4. How the DAG works:
 
 1. The DAG starts by getting country codes for the specified countries.
-2. It then fetches current weather information for the specified cities using these country codes.
-3. The weather fields are extracted and separated into two parts: weather records (city, country, state) and longitude/latitude data.
-4. The weather data from the API is merged with the country and state information.
-5. The merged weather records are then transformed into a more structured format.
+2. It then fetches geographical information for the specified cities using these country codes.
+3. The geographical fields are extracted and separated into two parts: geographical information (city, country, state) and longitude/latitude data.
+4. The current weather data from the API is merged with the country and state information.
+5. The merged current weather records are then transformed into a more structured format.
 6. Finally, the transformed records are loaded into a Postgres database.
 
 Configuration
@@ -329,12 +328,12 @@ The DAG uses several configuration variables:
 
 1. AIRFLOW_COUNTRY_NAMES: List of country names to fetch weather data for.
 2. AIRFLOW_CITY_NAMES: List of city names to fetch weather data for.
-3. AIRFLOW_FIELDS: List of weather fields to retrieve from the API.
+3. AIRFLOW_FIELDS: List of geographical fields to retrieve from the API.
 4. AIRFLOW_WEATHER_FIELDS_EXCLUDE: Weather fields to exclude from the API response.
 5. AIRFLOW_API_KEY: OpenWeather API key.
 
 Each task is dependent on the output of the previous task, creating a linear workflow for the ETL process. The DAG is scheduled to run every hour, ensuring that the database is regularly updated with the latest weather information for the specified cities.
 
 Dag Workflow
-![Airflow DAG Success](images/dag.jpg)
+![Airflow DAG Success](images/latest_dag.jpg)
 
