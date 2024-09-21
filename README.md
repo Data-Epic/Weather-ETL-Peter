@@ -243,7 +243,7 @@ The processed weather records are loaded into the database using a delete-write 
 
 **Database Diagram:**
 
-![alt text](images\image.png)
+![](images\image.png)
 
 # Weather ETL DAG Explanation
 
@@ -336,5 +336,5 @@ The DAG uses several configuration variables:
 Each task is dependent on the output of the previous task, creating a linear workflow for the ETL process. The DAG is scheduled to run every hour, ensuring that the database is regularly updated with the latest weather information for the specified cities.
 
 Dag Workflow
-![alt text](images\dag.jpg)
+![](images\dag.jpg)
 
