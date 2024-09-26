@@ -1,6 +1,8 @@
 import os
+import sys
 from typing import Tuple
-import logging
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def create_log_file(
