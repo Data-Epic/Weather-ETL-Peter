@@ -1,17 +1,42 @@
-.git
-.env
-.DS_Store
-airflow_settings.yaml
+# Python bytecode
 __pycache__/
-astro
-.venv
-airflow-webserver.pid
-webserver_config.py
-airflow.cfg
-airflow.db
-*.txt
-logs
-var
-.astro
-test_local.py
-test.py
+*.py[cod]
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+.env
+env/
+env.bak/
+venv.bak/
+
+# Poetry files
+.poetry/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+
+# Misc
+.DS_Store
+.coverage
+.tox/
+.nox/
+.hypothesis/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+#db
+*.db*
