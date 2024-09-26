@@ -28,6 +28,3 @@ COPY pyproject.toml poetry.lock ./
 
 RUN poetry install --no-dev --no-root
 COPY --chown=airflow:airflow dags/ ./dags
-
-
-
