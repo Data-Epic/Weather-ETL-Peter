@@ -9,7 +9,7 @@
 Step 1: Project Setup
 1. Clone the repository:
    ```
-   git clone https://github.com/Data-Epic/Weather-ETL-Precious.git
+   git clone https://github.com/Data-Epic/Weather-ETL-Peter.git
    cd Weather-ETL-Precious
    ```
 
@@ -205,7 +205,7 @@ An Airflow environment variable `WEATHER_FIELDS_EXCLUDE` is used to exclude part
 This returns fields such as current weather data, latitude, longitude, and timezone for the specified city.
 
 ### 4. Merging Current Weather Data and Geographical Data
-The extracted current weather data is merged with the geographical information to create a comprehensive dataset useful for analytics. 
+The extracted current weather data is merged with the geographical information to create a comprehensive dataset useful for analytics.
 
 **Merged Data Example:**
 ```json
@@ -241,9 +241,9 @@ The merged data is transformed into a list of dictionaries, where each dictionar
 ### 6. Loading into PostgreSQL Database (Final Step)
 The processed weather records are loaded into the database using a delete-write pattern to avoid duplicates. A cloud PostgreSQL database was set up on Render, and the data is inserted for use in analytics.
 
-**Database Diagram:**
+**Database Model Diagram:**
 
-![DB Diagram](images/image.png)
+![DB Model Diagram](images/db_model_diagram.png)
 
 # Weather ETL DAG Explanation
 
@@ -286,32 +286,89 @@ h) transform_weather_records:
 - Transforms the weather records into a more structured format.
 - Converts timestamps to datetime objects and selects specific fields.
 
-i) load_records_to_database:
+i) load_records_to_location_dim:
+-  loads the transformed weather records into the Location dimension table in the postgres database.
+- It also checks if the records already exist in the weather fact table.
+- If the records do not exist in the fact table, it inserts the records into the fact table.
+
+j) create_date_dim:
+- Loads the transformed weather records into the Date Dimension table in the postgres database.
+- It also checks if the records already exist in the date dimension table.
+- If the records do not exist in the date dimension table, it inserts the records into the date dimension
+
+k) join_date_dim_with_weather_fact:
+- Joins the Date Dimension table with the Weather Fact table in the postgres database.
+- It checks if the records already exist in the date dimension table and the weather fact table.
+- If the records exist in both tables, it joins the records by updating the date_id field in the weather fact table.
+
+l) load_records_to_database:
 - Loads the transformed weather records into a Postgres database.
 - Checks for existing records to avoid duplicates.
+
 
 3. DAG Structure:
 
 The DAG is structured as follows:
 
 ```python
+
+@dag(
+    start_date=datetime(2024, 9, 24),
+    schedule_interval=timedelta(hours=1),
+    description="Weather ETL DAG that fetches weather data from the OpenWeather API, transforms the data and loads it into a Postgres database",
+    catchup=False,
+    tags=["weather"],
+    max_active_runs=1,
+    render_template_as_native_obj=True,
+)
 def weather_etl_dag():
-    get_country_codes = get_country_code()['country_codes']
-    get_weather_info = get_geographical_data(get_country_codes, AIRFLOW_CITY_NAMES, AIRFLOW_FIELDS)['weather_records']
-    weather_fields_dict = restructure_geographical_data(get_weather_info)['weather_fields']
+    """
+    This function is used to create a Directed Acyclic Graph (DAG) for the Weather ETL process
+    The DAG is used to fetch weather data from the OpenWeather API, transform the data and load it into a Postgres database
+    """
+
+    get_country_codes = get_country_code()["country_codes"]
+    get_weather_info = get_geographical_data(
+        get_country_codes, AIRFLOW_CITY_NAMES, AIRFLOW_FIELDS
+    )["weather_records"]
+    weather_fields_dict = restructure_geographical_data(get_weather_info)[
+        "weather_fields"
+    ]
     weather_fields_records = process_geographical_records(weather_fields_dict)
     long_lat = get_longitude_latitude(weather_fields_dict)
     merging_weather_data = merge_current_weather_data(
-            long_lat, 
-            AIRFLOW_WEATHER_FIELDS_EXCLUDE,
-            weather_fields_records,
-            AIRFLOW_API_KEY
-        )
+        long_lat,
+        AIRFLOW_WEATHER_FIELDS_EXCLUDE,
+        weather_fields_records,
+        AIRFLOW_API_KEY,
+    )
+
     merged_weather_records = get_merged_weather_records(merging_weather_data)
     transform_records = transform_weather_records(merged_weather_records)
-    load_records_to_database(transform_records)
+
+    # task dependencies
+    (
+        load_records_to_location_dim(
+            transform_records, LocationDim, WeatherFact, gen_hash_key_location_dim
+        )
+        >> load_records_to_weather_type_dim(
+            transform_records,
+            WeatherTypeDim,
+            WeatherFact,
+            gen_hash_key_weather_type_dim,
+        )
+        >> create_date_dim(
+            AIRFLOW_START_DATE_YEAR,
+            AIRFLOW_END_DATE_YEAR,
+            DateDim,
+            gen_hash_key_datedim,
+        )
+        >> join_date_dim_with_weather_fact(WeatherFact, DateDim, json_str="")
+    )
+
 
 weather_dag_instance = weather_etl_dag()
+
 ```
 
 4. How the DAG works:
@@ -321,7 +378,10 @@ weather_dag_instance = weather_etl_dag()
 3. The geographical fields are extracted and separated into two parts: geographical information (city, country, state) and longitude/latitude data.
 4. The current weather data from the API is merged with the country and state information.
 5. The merged current weather records are then transformed into a more structured format.
-6. Finally, the transformed records are loaded into a Postgres database.
+6. It then loads the transformed weather records into the Location dimension table in the postgres database. It also checks if the records already exist in the weather fact table. If the records do not exist in the fact table, it inserts the records into the fact table.
+7. It loads the transformed weather records into the Date Dimension table in the postgres database. It also checks if the records already exist in the date dimension table. If the records do not exist in the date dimension table, it inserts the records into the date dimension.
+8. It now joins the Date Dimension table with the Weather Fact table in the postgres database. It checks if the records already exist in the date dimension table and the weather fact table. If the records exist in both tables, it joins the records by updating the date_id field in the weather fact table.
+9. It then loads the transformed weather records into a Postgres database and checks for existing records to avoid duplicates.
 
 Configuration
 The DAG uses several configuration variables:
@@ -331,17 +391,14 @@ The DAG uses several configuration variables:
 3. AIRFLOW_FIELDS: List of geographical fields to retrieve from the API.
 4. AIRFLOW_WEATHER_FIELDS_EXCLUDE: Weather fields to exclude from the API response.
 5. AIRFLOW_API_KEY: OpenWeather API key.
+6. AIRFLOW_START_DATE_YEAR: The year to start creating date records from
+7. AIRFLOW_END_DATE_YEAR: The year to stop creating date records
 
 Each task is dependent on the output of the previous task, creating a linear workflow for the ETL process. The DAG is scheduled to run every hour, ensuring that the database is regularly updated with the latest weather information for the specified cities.
-
-Dag Workflow
-![Airflow DAG Success](images/latest_dag.jpg)
 
 Airflow Variables
 ![Airflow Variables Success](images/dag_variables.jpg)
 
-Database Query
-![Database Query](images/db_query.jpg)
 
-
-
+Dag Workflow
+![Airflow DAG Success](images/dag_dag.jpg)
