@@ -1,17 +1,27 @@
 [tool.poetry]
 name = "src"
 version = "0.1.0"
-description = ""
-authors = ["Your Name <you@example.com>"]
+description = "A poetry environment for the weather ETL Pipeline"
+authors = ["peter peteradekolu@gmail.com"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
 requests = "^2.32.3"
-sqlalchemy = "^2.0.34"
 psycopg2-binary = "^2.9.9"
 python-decouple = "3.1"
+pandas = "^2.2.3"
+apache-airflow = "2.7.2"
+astronomer-providers = "^1.19.4"
+sqlalchemy = "1.4.54"
+pendulum = ">=2.0.0,<2.1.0"
+pytest-mock = "^3.14.0"
+isort = ">=5.12.0,<5.13.0"
 
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+pre-commit = "^3.8.0"
 
 [build-system]
 requires = ["poetry-core"]
