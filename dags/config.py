@@ -55,11 +55,23 @@ def process_var(var: str) -> list:
 
     returns: var(list) (A list)
     """
-    if "," in var:
-        return var.split(",")
+    if isinstance(var, str) is True:
+        if "," in var:
+            return var.split(",")
 
+        else:
+            return var
     else:
-        return var
+        error_logger.error(
+            {
+                "status": "error",
+                "error": "Invalid input. Please provide a string as argument",
+            }
+        )
+        return {
+            "status": "error",
+            "error": "Invalid input. Please provide a string as argument",
+        }
 
 
 CITY_NAMES = process_var(CITY_NAMES)
