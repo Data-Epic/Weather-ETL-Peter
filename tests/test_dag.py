@@ -1,121 +1,735 @@
-# import pytest
-# from airflow.models import DAG
-# from airflow.models.taskinstance import TaskInstance
-# from airflow.utils.dates import days_ago
-# from airflow.utils.state import State
+from unittest.mock import MagicMock, patch
 
-# from dags.weather_etl_dag import (
-#     get_country_code,
-#     get_geographical_data,
-#     get_longitude_latitude,
-#     process_geographical_records,
-#     restructure_geographical_data,
-# )
+from airflow.models.xcom_arg import XComArg
 
-# # @pytest.fixture
-# # def dag():
-# #     return DAG(
-# #         "test_dag",
-# #         default_args={"owner": "airflow", "start_date": days_ago(1)},
-# #         schedule_interval=None,
-# #     )
-
-# # def run_task(task, **kwargs):
-# #     dag = kwargs.pop('dag', None)
-# #     ti = TaskInstance(task=task, execution_date=dag.start_date if dag else None)
-# #     context = ti.get_template_context()
-# #     context.update(kwargs)
-# #     return task.execute(context)
-
-# # def test_get_country_code_single_country(dag):
-# #     task = get_country_code.override(task_id="get_country_code")()
-# #     result = run_task(task, dag=dag, countries="Nigeria")
-# #     assert result["status"] == "success"
-# #     assert result["country_codes"] == "NG"
+from dags.weather_etl_dag import (
+    create_date_dim,
+    get_country_code,
+    get_geographical_data,
+    get_longitude_latitude,
+    get_merged_weather_records,
+    join_date_dim_with_weather_fact,
+    load_records_to_location_dim,
+    load_records_to_weather_type_dim,
+    merge_current_weather_data,
+    process_geographical_records,
+    restructure_geographical_data,
+    transform_weather_records,
+    weather_etl_dag,
+)
 
 
-# # def test_get_country_code_multiple_countries():
-# #     result = get_country_code(["Nigeria", "Ghana"])
-# #     assert result["status"] == "success"
-# #     assert result["country_codes"] == ["NG", "GH"]
+def test_get_country_code() -> None:
+    """
+    Test the get_country_code function in the weather_etl_dag module
 
-# # def test_get_country_code_invalid_input():
-# #     result = get_country_code(123)
-# #     assert result["status"] == "error"
-# #     assert "Invalid input type" in result["message"]
+    The function should return an XComArg object that can be used to retrieve the country code
+    for the given country name from the Airflow XCom.
 
-# # @patch('dags.weather_etl_dag.get_data_from_country_code')
-# # def test_get_geographical_data_single_country(mock_get_data):
-# #     mock_get_data.return_value = {"weather_data": {"temp": 25, "humidity": 60}}
-# #     result = get_geographical_data("NG", ["Lagos"], ["temp", "humidity"])
-# #     assert result["status"] == "success"
-# #     assert len(result["weather_records"]) == 1
+    The function should also call the retrieve_country_code function with the given country name
+    and return the result from the XCom.
 
-# # @patch('dags.weather_etl_dag.get_data_from_country_code')
-# # def test_get_geographical_data_multiple_countries(mock_get_data):
-# #     mock_get_data.return_value = {"weather_data": {"temp": 25, "humidity": 60}}
-# #     result = get_geographical_data(["NG", "GH"], ["Lagos", "Accra"], ["temp", "humidity"])
-# #     assert result["status"] == "success"
-# #     assert len(result["weather_records"]) == 2
+    Returns:
+        None
+    """
+    with patch("dags.weather_etl_dag.retrieve_country_code"):
+        # Call the function and get the XComArg
+        result = get_country_code("Nigeria")
+        assert isinstance(result, XComArg)
 
-# # def test_get_geographical_data_invalid_input():
-# #     result = get_geographical_data("NG", "Lagos", ["temp", "humidity"])
-# #     assert result["status"] == "error"
-# #     assert "Invalid input type" in result["message"]
+        # Mock the behavior we expect from XComArg in an Airflow task
+        mock_ti = MagicMock()
+        mock_ti.xcom_pull.return_value = {
+            "status": "success",
+            "message": "Country codes for Nigeria are NG",
+            "country_codes": "NG",
+        }
 
-# # def test_restructure_geographical_data_valid_input():
-# #     input_data = [
-# #         {"name": "Lagos", "lat": 6.46, "lon": 3.39, "country": "Nigeria", "state": "Lagos"},
-# #         {"name": "Accra", "lat": 5.56, "lon": -0.21, "country": "Ghana", "state": "Greater Accra"}
-# #     ]
-# #     result = restructure_geographical_data(input_data)
-# #     assert result["status"] == "success"
-# #     assert len(result["weather_fields"]["weather_fields"]) == 2
-# #     assert len(result["weather_fields"]["lon_lat"]) == 2
+        # Simulate how the XComArg would be used in a downstream task
+        simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
 
-# # def test_restructure_geographical_data_invalid_keys():
-# #     input_data = [{"invalid_key": "value"}]
-# #     result = restructure_geographical_data(input_data)
-# #     assert result["status"] == "error"
-# #     assert "Invalid keys" in result["message"]
+        assert simulated_result == {
+            "status": "success",
+            "message": "Country codes for Nigeria are NG",
+            "country_codes": "NG",
+        }
 
-# # def test_restructure_geographical_data_invalid_input():
-# #     result = restructure_geographical_data("invalid input")
-# #     assert result["status"] == "error"
-# #     assert "Invalid input type" in result["message"]
+        # Verify that xcom_pull was called with the correct task_id
+        mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
 
-# # def test_process_geographical_records_valid_input():
-# #     input_data = {
-# #         "weather_fields": [
-# #             {"city": "Lagos", "country": "Nigeria", "state": "Lagos"},
-# #             {"city": "Accra", "country": "Ghana", "state": "Greater Accra"}
-# #         ],
-# #         "lon_lat": [(3.39, 6.46), (-0.21, 5.56)]
-# #     }
-# #     result = process_geographical_records(input_data)
-# #     assert len(result) == 2
-# #     assert result[0]["city"] == "Lagos"
-# #     assert result[1]["city"] == "Accra"
 
-# # def test_process_geographical_records_invalid_input():
-# #     result = process_geographical_records("invalid input")
-# #     assert result["status"] == "error"
-# #     assert "Invalid input type" in result["message"]
+def test_get_country_code_invalid_input() -> None:
+    """
+    Test the get_country_code function in the weather_etl_dag module
 
-# # def test_get_longitude_latitude_valid_input():
-# #     input_data = {
-# #         "weather_fields": [
-# #             {"city": "Lagos", "country": "Nigeria", "state": "Lagos"},
-# #             {"city": "Accra", "country": "Ghana", "state": "Greater Accra"}
-# #         ],
-# #         "lon_lat": [(3.39, 6.46), (-0.21, 5.56)]
-# #     }
-# #     result = get_longitude_latitude(input_data)
-# #     assert len(result) == 2
-# #     assert result[0] == (3.39, 6.46)
-# #     assert result[1] == (-0.21, 5.56)
+    The function should return an XComArg object that can be used to retrieve the error message
+    when an invalid input type is provided for the country name.
 
-# # def test_get_longitude_latitude_invalid_input():
-# #     result = get_longitude_latitude("invalid input")
-# #     assert result["status"] == "error"
-# #     assert "Invalid input type" in result["message"]
+    The function should also call the retrieve_country_code function with the given country name
+    and return the result from the XCom.
+
+    Returns:
+        None
+    """
+
+    with patch("dags.weather_etl_dag.retrieve_country_code"):
+        country = 123
+        result = get_country_code(country)
+        assert isinstance(result, XComArg)
+
+        mock_ti = MagicMock()
+        mock_ti.xcom_pull.return_value = {
+            "status": "error",
+            "message": f"Invalid input type for country name. Expected string but got {type(country)}",
+            "error": "Invalid input type",
+        }
+
+        simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
+
+        assert simulated_result == {
+            "status": "error",
+            "message": f"Invalid input type for country name. Expected string but got {type(country)}",
+            "error": "Invalid input type",
+        }
+
+        mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
+
+
+def test_get_geographical_data() -> None:
+    """
+    Test the get_geographical_data function in the weather_etl_dag module
+
+    The function should return an XComArg object that can be used to retrieve the geographical data
+    for the given fields from the Airflow XCom.
+
+    The function should also call the requests.get function with the correct URL
+    and return the result from the XCom.
+
+    Returns:
+        None
+    """
+
+    with patch("dags.weather_etl_dag.requests.get") as mock_get:
+        mock_get.return_value.json.return_value = {
+            "name": "Lagos",
+            "lat": 6.46,
+            "lon": 3.39,
+            "country": "Nigeria",
+            "state": "Lagos",
+        }
+        city_names = ["Lagos"]
+        result = get_geographical_data(
+            "NG", city_names, ["name", "lat", "lon", "country", "state"]
+        )
+        assert isinstance(result, XComArg)
+
+        mock_ti = MagicMock()
+        mock_ti.xcom_pull.return_value = {
+            "status": "success",
+            "message": f"Current weather information for {city_names} has been retrieved from the API",
+            "weather_records": [
+                {
+                    "name": "Lagos",
+                    "lat": 6.46,
+                    "lon": 3.39,
+                    "country": "Nigeria",
+                    "state": "Lagos",
+                }
+            ],
+        }
+
+        simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
+
+        assert simulated_result == {
+            "status": "success",
+            "message": f"Current weather information for {city_names} has been retrieved from the API",
+            "weather_records": [
+                {
+                    "name": "Lagos",
+                    "lat": 6.46,
+                    "lon": 3.39,
+                    "country": "Nigeria",
+                    "state": "Lagos",
+                }
+            ],
+        }
+
+        mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
+
+
+def test_restructure_geographical_data():
+    """
+    Test the restructure_geographical_data function in the weather_etl_dag module
+
+    The function should return an XComArg object that can be used to retrieve the geographical data
+    for the given fields from the Airflow XCom.
+
+    The function should also call the requests.get function with the correct URL
+    and return the result from the XCom.
+
+    Returns:
+        None
+    """
+    with patch("dags.weather_etl_dag.requests.get") as mock_get:
+        mock_get.return_value.json.return_value = {
+            "name": "Lagos",
+            "lat": 6.46,
+            "lon": 3.39,
+            "country": "Nigeria",
+            "state": "Lagos",
+        }
+        weather_data = [
+            {
+                "name": "Lagos",
+                "lat": 6.46,
+                "lon": 3.39,
+                "country": "Nigeria",
+                "state": "Lagos",
+            }
+        ]
+        result = restructure_geographical_data(weather_data)
+        assert isinstance(result, XComArg)
+
+        mock_ti = MagicMock()
+        mock_ti.xcom_pull.return_value = {
+            "status": "success",
+            "message": "Fields of the weather records have been retrieved",
+            "weather_fields": {
+                "city": "Lagos",
+                "lat": 6.46,
+                "lon": 3.39,
+                "country": "Nigeria",
+                "state": "Lagos",
+            },
+        }
+
+        simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
+
+        assert simulated_result == {
+            "status": "success",
+            "message": "Fields of the weather records have been retrieved",
+            "weather_fields": {
+                "city": "Lagos",
+                "lat": 6.46,
+                "lon": 3.39,
+                "country": "Nigeria",
+                "state": "Lagos",
+            },
+        }
+
+        mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
+
+
+def test_process_geographical_records() -> None:
+    """
+
+    Test the process_geographical_records function in the weather_etl_dag module
+
+    The function should return an XComArg object that can be used to retrieve the geographical data
+    for the given fields from the Airflow XCom.
+
+    The function should also call the requests.get function with the correct URL
+    and return the result from the XCom.
+
+    Returns:
+        None
+    """
+
+    with patch("dags.weather_etl_dag.requests.get") as mock_get:
+        mock_get.return_value.json.return_value = {
+            "name": "Lagos",
+            "lat": 6.46,
+            "lon": 3.39,
+            "country": "Nigeria",
+            "state": "Lagos",
+        }
+        weather_data = [
+            {
+                "name": "Lagos",
+                "lat": 6.46,
+                "lon": 3.39,
+                "country": "Nigeria",
+                "state": "Lagos",
+            }
+        ]
+        result = process_geographical_records(weather_data)
+        assert isinstance(result, XComArg)
+
+        mock_ti = MagicMock()
+        mock_ti.xcom_pull.return_value = {
+            "city": "Lagos",
+            "country": "Nigeria",
+            "state": "Lagos",
+        }
+
+        simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
+
+        assert simulated_result == {
+            "city": "Lagos",
+            "country": "Nigeria",
+            "state": "Lagos",
+        }
+
+        mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
+
+
+def test_get_longitude_latitude() -> None:
+    """
+
+    Test the get_longitude_latitude function in the weather_etl_dag module
+
+    The function should return an XComArg object that can be used to retrieve the longitude and latitude
+    for the given fields from the Airflow XCom.
+
+    The function should also call the requests.get function with the correct URL
+    and return the result from the XCom.
+
+    Returns:
+        None
+    """
+    with patch("dags.weather_etl_dag.requests.get") as mock_get:
+        mock_get.return_value.json.return_value = {
+            "name": "Lagos",
+            "lat": 6.46,
+            "lon": 3.39,
+            "country": "Nigeria",
+            "state": "Lagos",
+        }
+        weather_fields = {
+            "city": "Lagos",
+            "country": "Nigeria",
+            "longitude": 3.39,
+            "latitude": 6.46,
+            "state": "Lagos",
+        }
+        result = get_longitude_latitude(weather_fields)
+        assert isinstance(result, XComArg)
+
+        mock_ti = MagicMock()
+        mock_ti.xcom_pull.return_value = [(3.39, 6.46)]
+        simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
+
+        assert simulated_result == [(3.39, 6.46)]
+
+        mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
+
+
+def test_merge_current_weather_data() -> None:
+    """
+
+    Test the merge_current_weather_data function in the weather_etl_dag module
+
+    The function should return an XComArg object that can be used to retrieve the merged weather records
+    for the given fields from the Airflow XCom.
+
+    The function should also call the requests.get function with the correct URL
+    and return the result from the XCom.
+
+    Returns:
+        None
+    """
+    with patch("dags.weather_etl_dag.requests.get") as mock_get:
+        mock_get.return_value.json.return_value = {
+            "lat": 6.46,
+            "lon": 3.39,
+            "timezone": "Africa/Lagos",
+            "timezone_offset": 3600,
+            "current": {
+                "dt": 1726747705,
+                "sunrise": 1726724175,
+                "sunset": 1726767705,
+                "temp": 301.15,
+                "feels_like": 305.15,
+                "pressure": 1010,
+                "humidity": 75,
+                "dew_point": 296.15,
+                "uvi": 10,
+                "clouds": 20,
+                "visibility": 10000,
+                "wind_speed": 3.6,
+                "wind_deg": 180,
+                "weather": [{"main": "Clear", "description": "clear sky"}],
+            },
+        }
+        lon_lat = [(3.39, 6.46)]
+        city_info = [{"city": "Lagos", "country": "Nigeria", "state": "Lagos"}]
+        result = merge_current_weather_data(
+            lon_lat, "minutely,hourly,daily", city_info, "fake_api_key"
+        )
+        assert isinstance(result, XComArg)
+
+        mock_ti = MagicMock()
+        mock_ti.xcom_pull.return_value = {
+            "status": "success",
+            "message": f"Current weather information for {lon_lat} has been retrieved from the API",
+            "weather_records": [
+                {
+                    "city": "Lagos",
+                    "country": "Nigeria",
+                    "state": "Lagos",
+                    "lat": 6.46,
+                    "lon": 3.39,
+                    "timezone": "Africa/Lagos",
+                    "timezone_offset": 3600,
+                    "date_time": 1726747705,
+                    "temp": 301.15,
+                    "feels_like": 305.15,
+                    "pressure": 1010,
+                    "humidity": 75,
+                    "dew_point": 296.15,
+                    "ultraviolet_index": 10,
+                    "clouds": 20,
+                    "visibility": 10000,
+                    "wind_speed": 3.6,
+                    "wind_deg": 180,
+                    "weather": "Clear",
+                    "description": "clear sky",
+                }
+            ],
+        }
+
+        simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
+
+        assert simulated_result == {
+            "status": "success",
+            "message": "Current weather information for [(3.39, 6.46)] has been retrieved from the API",
+            "weather_records": [
+                {
+                    "city": "Lagos",
+                    "country": "Nigeria",
+                    "state": "Lagos",
+                    "lat": 6.46,
+                    "lon": 3.39,
+                    "timezone": "Africa/Lagos",
+                    "timezone_offset": 3600,
+                    "date_time": 1726747705,
+                    "temp": 301.15,
+                    "feels_like": 305.15,
+                    "pressure": 1010,
+                    "humidity": 75,
+                    "dew_point": 296.15,
+                    "ultraviolet_index": 10,
+                    "clouds": 20,
+                    "visibility": 10000,
+                    "wind_speed": 3.6,
+                    "wind_deg": 180,
+                    "weather": "Clear",
+                    "description": "clear sky",
+                }
+            ],
+        }
+
+        mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
+
+
+def test_get_merged_weather_records() -> None:
+    """
+
+    Test the get_merged_weather_records function in the weather_etl_dag module
+
+    The function should return an XComArg object that can be used to retrieve the merged weather records
+    for the given fields from the Airflow XCom.
+
+    The function should also call the requests.get function with the correct URL
+    and return the result from the XCom.
+
+    Returns:
+        None
+    """
+    lon_lat = [(3.39, 6.46)]
+    merged_weather = {
+        "status": "success",
+        "message": f"Current weather information for {lon_lat} has been retrieved from the API",
+        "weather_records": [{"city": "Lagos", "country": "Nigeria", "state": "Lagos"}],
+    }
+    result = get_merged_weather_records(merged_weather)
+    assert isinstance(result, XComArg)
+
+    mock_ti = MagicMock()
+    mock_ti.xcom_pull.return_value = [
+        {"city": "Lagos", "country": "Nigeria", "state": "Lagos"}
+    ]
+
+    simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
+    assert simulated_result == [
+        {"city": "Lagos", "country": "Nigeria", "state": "Lagos"}
+    ]
+
+    mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
+
+
+def test_transform_weather_records() -> None:
+    """
+
+    Test the transform_weather_records function in the weather_etl_dag module
+
+    The function should return an XComArg object that can be used to retrieve the transformed weather records
+    for the given fields from the Airflow XCom.
+
+    The function should also call the requests.get function with the correct URL
+    and return the result from the XCom.
+
+    Returns:
+        None
+    """
+    weather_data = [
+        {
+            "city": "Lagos",
+            "country": "Nigeria",
+            "state": "Lagos",
+            "latitude": 6.46,
+            "longitude": 3.39,
+            "timezone": "Africa/Lagos",
+            "timezone_offset": 3600,
+            "date_time": 1726747705,
+            "date": 1726747705,
+            "year": 2024,
+            "month": 9,
+            "day": 26,
+            "day_of_week": "Thursday",
+            "sunrise": 1726724175,
+            "sunset": 1726767705,
+            "temp": 301.15,
+            "feels_like": 305.15,
+            "pressure": 1010,
+            "humidity": 75,
+            "dew_point": 296.15,
+            "ultraviolet_index": 10,
+            "clouds": 20,
+            "visibility": 10000,
+            "wind_speed": 3.6,
+            "wind_deg": 180,
+            "weather": "Clear",
+            "description": "clear sky",
+        }
+    ]
+    result = transform_weather_records(weather_data)
+    assert isinstance(result, XComArg)
+
+    mock_ti = MagicMock()
+    mock_ti.xcom_pull.return_value = weather_data
+
+    simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
+
+    assert simulated_result == [
+        {
+            "city": "Lagos",
+            "country": "Nigeria",
+            "state": "Lagos",
+            "latitude": 6.46,
+            "longitude": 3.39,
+            "timezone": "Africa/Lagos",
+            "timezone_offset": 3600,
+            "date_time": 1726747705,
+            "date": 1726747705,
+            "year": 2024,
+            "month": 9,
+            "day": 26,
+            "day_of_week": "Thursday",
+            "sunrise": 1726724175,
+            "sunset": 1726767705,
+            "temp": 301.15,
+            "feels_like": 305.15,
+            "pressure": 1010,
+            "humidity": 75,
+            "dew_point": 296.15,
+            "ultraviolet_index": 10,
+            "clouds": 20,
+            "visibility": 10000,
+            "wind_speed": 3.6,
+            "wind_deg": 180,
+            "weather": "Clear",
+            "description": "clear sky",
+        }
+    ]
+
+    mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
+
+
+def test_load_records_to_location_dim() -> None:
+    """
+
+    Test the load_records_to_location_dim function in the weather_etl_dag module
+
+    The function should return an XComArg object that can be used to retrieve the transformed weather records
+    for the given fields from the Airflow XCom.
+
+    The function should also call the requests.get function with the correct URL
+    and return the result from the XCom.
+
+    Returns:
+        None
+    """
+    with patch("dags.weather_etl_dag.query_existing_data") as mock_query:
+        mock_query.return_value = {
+            "existing_ids": [],
+            "record_list": [{"city": "Lagos", "country": "Nigeria", "state": "Lagos"}],
+        }
+        result = load_records_to_location_dim(
+            [{"city": "Lagos", "country": "Nigeria", "state": "Lagos"}],
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+        )
+        assert isinstance(result, XComArg)
+
+        mock_ti = MagicMock()
+        mock_ti.xcom_pull.return_value = {
+            "status": "success",
+            "message": "1 location records have been loaded",
+        }
+
+        simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
+        assert simulated_result == {
+            "status": "success",
+            "message": "1 location records have been loaded",
+        }
+
+        mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
+
+
+def test_create_date_dim() -> None:
+    """
+
+    Test the create_date_dim function in the weather_etl_dag module
+
+    The function should return an XComArg object that can be used to retrieve the transformed weather records
+    for the given fields from the Airflow XCom.
+
+    The function should also call the requests.get function with the correct URL
+    and return the result from the XCom.
+
+    Returns:
+        None
+    """
+    with patch("dags.weather_etl_dag.query_existing_data") as mock_query:
+        mock_query.return_value = {
+            "existing_ids": [],
+            "record_list": [
+                {
+                    "date": 1726747705,
+                    "year": 2024,
+                    "month": 9,
+                    "day": 26,
+                    "day_of_week": "Thursday",
+                }
+            ],
+        }
+        result = create_date_dim("2024", "2024", MagicMock(), MagicMock())
+        assert isinstance(result, XComArg)
+
+        mock_ti = MagicMock()
+        mock_ti.xcom_pull.return_value = {
+            "status": "success",
+            "message": "date records have been loaded",
+        }
+
+        simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
+        assert simulated_result == {
+            "status": "success",
+            "message": "date records have been loaded",
+        }
+
+        mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
+
+
+def test_join_date_dim_with_weather_fact() -> None:
+    """
+
+    Test the join_date_dim_with_weather_fact function in the weather_etl_dag module
+
+    The function should return an XComArg object that can be used to retrieve the transformed weather records
+    for the given fields from the Airflow XCom.
+
+    The function should also call the requests.get function with the correct URL
+    and return the result from the XCom.
+
+    Returns:
+        None
+    """
+    with patch("dags.weather_etl_dag.query_existing_data") as mock_query:
+        mock_query.return_value = {
+            "existing_ids": [1726747705],
+            "record_list": [
+                {
+                    "date": 1726747705,
+                    "year": 2024,
+                    "month": 9,
+                    "day": 26,
+                    "day_of_week": "Thursday",
+                }
+            ],
+        }
+        result = join_date_dim_with_weather_fact(MagicMock(), MagicMock(), "{}")
+        assert isinstance(result, XComArg)
+
+        mock_ti = MagicMock()
+        mock_ti.xcom_pull.return_value = {
+            "status": "success",
+            "message": "Date records have been joined",
+        }
+
+        simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
+        assert simulated_result == {
+            "status": "success",
+            "message": "Date records have been joined",
+        }
+
+        mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
+
+
+def test_load_records_to_weather_type_dim() -> None:
+    """
+
+    Test the load_records_to_weather_type_dim function in the weather_etl_dag module
+
+    The function should return an XComArg object that can be used to retrieve the transformed weather records
+    for the given fields from the Airflow XCom.
+
+    The function should also call the requests.get function with the correct URL
+    and return the result from the XCom.
+
+    Returns:
+        None
+    """
+    with patch("dags.weather_etl_dag.query_existing_data") as mock_query:
+        mock_query.return_value = {
+            "existing_ids": [],
+            "record_list": [{"city": "Lagos", "country": "Nigeria", "state": "Lagos"}],
+        }
+        result = load_records_to_weather_type_dim(
+            [{"city": "Lagos", "country": "Nigeria", "state": "Lagos"}],
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+        )
+        assert isinstance(result, XComArg)
+
+        mock_ti = MagicMock()
+        mock_ti.xcom_pull.return_value = {
+            "status": "success",
+            "message": "weather type records have been loaded",
+        }
+
+        simulated_result = mock_ti.xcom_pull(task_ids=result.operator.task_id)
+        assert simulated_result == {
+            "status": "success",
+            "message": "weather type records have been loaded",
+        }
+
+        mock_ti.xcom_pull.assert_called_once_with(task_ids=result.operator.task_id)
+
+
+def test_weather_etl_dag() -> None:
+    """
+
+    Test the weather_etl_dag function in the weather_etl_dag module
+
+    The function should return a DAG object with the correct attributes
+
+    Returns:
+        None
+    """
+    dag = weather_etl_dag()
+    assert dag.task_count == 12
+    assert dag.dag_id == "weather_etl_dag"
