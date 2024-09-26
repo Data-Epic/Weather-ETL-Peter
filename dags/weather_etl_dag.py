@@ -597,7 +597,8 @@ def load_records_to_location_dim(
 ) -> Dict[str, Union[str, List[dict]]]:
     """
     This function is used to load the transformed weather records into the Location
-    Dimension table in the postgres database
+    Dimension table in the postgres database. It also checks if the records already exist in the weather fact table.
+    If the records do not exist in the fact table, it inserts the records into the fact table.
 
     Args:
         weather_data(List[dict]): List of dictionaries containing the transformed weather records
@@ -742,7 +743,9 @@ def create_date_dim(
     hash_function: Dict[str, str],
 ) -> Dict[str, Union[str, List[dict]]]:
     """
-    This function is used to load the transformed weather records into the Date Dimension table in the postgres database
+    This function is used to load the transformed weather records into the Date Dimension table in the postgres database.
+    It also checks if the records already exist in the date dimension table.
+    If the records do not exist in the date dimension table, it inserts the records into the date dimension
 
     Args:
         start_year(str): The year to start creating date records from
@@ -831,7 +834,9 @@ def join_date_dim_with_weather_fact(
     fact_model: DeclarativeMeta, date_model: DeclarativeMeta, json_str: str
 ) -> Dict[str, Union[str, List[dict]]]:
     """
-    This function is used to join the Date Dimension table with the Weather Fact table in the postgres database
+    This function is used to join the Date Dimension table with the Weather Fact table in the postgres database.
+    It checks if the records already exist in the date dimension table and the weather fact table.
+    If the records exist in both tables, it joins the records by updating the date_id field in the weather fact table.
 
     Args:
         fact_model(DeclarativeMeta): The Weather Fact model
