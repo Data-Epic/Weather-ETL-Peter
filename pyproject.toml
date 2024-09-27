@@ -6,18 +6,15 @@ authors = ["peter"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 requests = "^2.32.3"
 psycopg2-binary = "^2.9.9"
 python-decouple = "3.1"
 pandas = "^2.2.3"
-apache-airflow = "2.7.2"
-astronomer-providers = "1.19.4"
 pendulum = ">=2.0.0,<2.1.0"
 pytest-mock = "^3.14.0"
 isort = ">=5.12.0,<5.13.0"
-sqlalchemy = ">=1.4.25,<1.5.0"
-
+apache-airflow = "2.7.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
