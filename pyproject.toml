@@ -2,7 +2,7 @@
 name = "src"
 version = "0.1.0"
 description = "A poetry environment for the weather ETL Pipeline"
-authors = ["peter peteradekolu@gmail.com"]
+authors = ["peter"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
