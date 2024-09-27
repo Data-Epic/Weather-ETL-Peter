@@ -49,7 +49,7 @@ AIRFLOW_END_DATE_YEAR = Variable.get("END_DATE_YEAR", default_var=END_DATE_YEAR)
 def process_var(var: str) -> list:
     """
     Process the environmental variable from a string to a list of strings if
-    there is a comma in the varable.
+    there is a comma in the varable
 
     Args: var(str) An environmental variable.
 
