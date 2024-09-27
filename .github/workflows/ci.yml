@@ -25,6 +25,16 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    environment: test
+    env:
+      DB_URL: ${{ secrets.DATABASE_URL }}
+      API_KEY: ${{ secrets.API_KEY }}
+      CITY_NAMES: lagos,ibadan,kano,accra,abuja,pretoria
+      COUNTRY_NAMES: nigeria,ghana,south africa
+      FIELDS: name,lat,lon,country,state
+      WEATHER_FIELDS_EXCLUDE: minutely,hourly,daily,alerts
+      START_DATE_YEAR: "2024"
+      END_DATE_YEAR: "2024"
     needs: pre-commit
     steps:
     - uses: actions/checkout@v2
