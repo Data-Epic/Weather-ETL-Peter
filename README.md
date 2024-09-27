@@ -1,118 +1,144 @@
-# Weather-ETL-Peter
-
-## Setting up Airflow with Docker: A Step-by-Step Guide
-
-### Prerequisites:
-* Docker and Docker Compose installed on your machine
-* OpenWeatherMap API key (sign up at https://openweathermap.org/api)
-
-Step 1: Project Setup
-1. Clone the repository:
-   ```
-   git clone https://github.com/Data-Epic/Weather-ETL-Peter.git
-   cd Weather-ETL-Precious
-   ```
-
-2. Create necessary directories:
-   ```
-   mkdir -p ./dags ./logs ./plugins ./config
-   ```
-
-3. Set up environment variables:
-   ```
-   echo -e "AIRFLOW_UID=$(id -u)" > .env
-   ```
-
-4. Edit the .env file and add the following variables:
-   ```
-   AIRFLOW_UID=your_uid
-   DB_USER=myadmin
-   DB_PASSWORD=mypassword
-   DB_NAME=weather_etl
-   DB_URL=postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@postgres/${DB_NAME}
-   AIRFLOW__CORE__EXECUTOR=LocalExecutor
-   AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@postgres/${DB_NAME}
-   AIRFLOW_DATABASE_SQL_ALCHEMY_CONN=postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@postgres/${DB_NAME}
-   AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
-   AIRFLOW__CORE__LOAD_EXAMPLES=False
-   AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT=400
-   AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_TIMEOUT=400
-   AIRFLOW__TRIGGERER__DEFAULT_CAPACITY=1000
-   API_KEY=your_weather_api_key
-   ```
-
-Step 2: Docker Compose File Explanation
-Your docker-compose.yml file defines several services. Let's break them down:
-
-1. postgres:
-   - Uses PostgreSQL 13 image
-   - Stores Airflow metadata and your project data
-   - Configured with a health check to ensure it's ready before other services start
-
-2. airflow-init:
-   - Initializes the Airflow database and creates the first admin user
-   - Depends on the postgres service being healthy
-
-3. airflow-webserver:
-   - Runs the Airflow web interface
-   - Accessible at http://localhost:8080
-   - Depends on airflow-init service completing successfully
-   - Has a health check to ensure it's running before other services start
-
-4. airflow-scheduler:
-   - Monitors and triggers scheduled workflows
-   - Depends on the airflow-webserver being healthy
-
-5. airflow-triggerer:
-   - Handles deferred task instances
-   - Improves Airflow's ability to handle long-running tasks
-   - Depends on the airflow-webserver being healthy
-
-Step 3: Building and Starting the Services
-1. Ensure you're in the project directory containing the docker-compose.yml file.
-
-2. Build and start the Docker containers:
-   ```
-   docker-compose up --build
-   ```
-
-3. Wait for all services to start. You should see logs from each service in the console.
-
-Step 4: Accessing Airflow
-1. Once all services are running, open a web browser and go to http://localhost:8080
-
-2. Log in with the default credentials:
-   - Username: admin
-   - Password: admin
-
-Step 5: Using Airflow
-1. The DAGs directory (./dags) is mounted to the Airflow containers. Place your DAG files here, and they will be automatically picked up by Airflow.
-
-2. Logs are stored in the ./logs directory for easy access and debugging.
-
-3. The PostgreSQL database is accessible on port 5432. You can connect to it using the credentials specified in your .env file.
-
-Additional Notes:
-- The scheduler service monitors your DAGs and triggers them based on their schedules or dependencies.
-- The triggerer service helps manage long-running tasks and improves Airflow's scalability.
-- You can customize Airflow configurations by modifying the environment variables in the .env file or docker-compose.yml.
-
-Stopping the Services:
-To stop all services, use:
-```
-docker-compose down
-```
-
-To stop services and remove volumes (this will delete all data):
-```
-docker-compose down -v
-```
-
-This setup provides a fully functional Airflow environment using Docker, with separate services for the database, webserver, scheduler, and triggerer, allowing for easy scaling and management of your weather ETL workflows.
-
-Here's the optimized and grammatically corrected version of your step-by-step guide:
+Here’s an optimized and streamlined version of your README and project setup guide:
 
 ---
+
+# Weather ETL with Airflow and Docker
+
+## Overview
+This project sets up an Airflow DAG to orchestrate an ETL pipeline that fetches, transforms, and loads weather data into a PostgreSQL database. The DAG extracts data from the OpenWeatherMap API, transforms it, and loads it into a database for further analysis.
+
+### Prerequisites
+- **Docker**: Install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
+- **OpenWeatherMap API**: Get your free API key [here](https://openweathermap.org/api).
+
+---
+
+## Project Structure
+```
+/home/etl_ochestration_peter/
+├── dags/                    # Airflow DAGs and scripts
+│   ├── weather_dag.py       # Main Airflow DAG for ETL
+│   ├── config.py            # Project configuration
+│   ├── logger_config.py     # Logging configuration
+│   ├── utils.py             # Helper functions
+│   ├── database.py          # Database operations and connection
+│   └── models.py            # Database schema definitions
+├── tests/                   # Project test files
+├── Dockerfile               # Docker image definition
+├── docker-compose.yml       # Docker services definition
+├── requirements.txt         # Python dependencies
+├── pyproject.toml           # Poetry project configuration
+├── poetry.lock              # Locked dependencies for consistency
+├── .pre-commit-config.yaml  # Pre-commit hooks configuration
+├── README.md                # This README file
+└── images/                  # Images for documentation
+    └── weather_erd.png      # Weather database ERD
+```
+
+---
+
+## Setup Guide
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Data-Epic/Weather-ETL-Peter.git
+cd Weather-ETL-Peter
+```
+
+### 2. Set Up Directories and Environment Variables
+```bash
+mkdir -p ./dags ./logs ./plugins ./config
+echo -e "AIRFLOW_UID=$(id -u)" > .env
+```
+
+Edit the `.env` file and configure the following variables:
+```bash
+# .env
+
+# Airflow and PostgreSQL configurations
+AIRFLOW_UID=your_uid              # Use 'id -u' to get your UID
+DB_USER=myadmin                   # PostgreSQL username
+DB_PASSWORD=mypassword            # PostgreSQL password
+DB_NAME=weather_etl               # Database name
+DB_URL=postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@weather-db/${DB_NAME}
+
+# OpenWeatherMap API Key
+API_KEY=your_weather_api_key
+```
+
+### 3. Configure OpenWeatherMap API
+Sign up for an API key from [OpenWeatherMap](https://openweathermap.org/api) and update the `.env` file with your API key.
+
+### 4. Build and Run the Docker Services
+Run the following command to start the services:
+```bash
+docker compose up --build
+```
+This will launch:
+- **Airflow Webserver**: Accessible at [http://localhost:8080](http://localhost:8080).
+- **PostgreSQL Database**: Running on port `5432`.
+
+### 5. Accessing Airflow and Setting Up the DAG
+1. Open [http://localhost:8080](http://localhost:8080) in your browser.
+2. Log in with the default credentials (`airflow`/`airflow`).
+3. Add your cities and countries in **Admin > Variables** (e.g., key: `CITIES`, value: `London, Ife, Lagos`).
+
+![Setting Environment Variables](images/dag_variables.png)
+
+4. Navigate to the DAGs section to manually trigger `weather_etl_dag`, or wait for it to run according to its schedule.
+
+![Airflow DAG Execution](images/dag_dag.png)
+
+### 6. Stopping and Cleaning Up Services
+To stop the services:
+```bash
+docker compose down
+```
+
+To clean up containers, volumes, and images:
+```bash
+docker compose down --volumes --rmi all
+```
+
+---
+
+## Docker Compose File Breakdown
+The `docker-compose.yml` defines the following services:
+
+1. **PostgreSQL**: Database for storing ETL data.
+2. **Airflow Init**: Initializes the Airflow database.
+3. **Airflow Webserver**: Airflow UI accessible at [http://localhost:8080](http://localhost:8080).
+4. **Airflow Scheduler**: Triggers scheduled workflows.
+5. **Airflow Triggerer**: Manages long-running tasks for scalability.
+
+### Running the Docker Compose
+1. Ensure you're in the project directory with the `docker-compose.yml` file.
+2. Build and start the containers:
+    ```bash
+    docker compose up --build
+    ```
+
+### Stopping Services
+Stop the services:
+```bash
+docker compose down
+```
+
+Clean up:
+```bash
+docker compose down -v
+```
+
+---
+
+## Additional Notes
+- Airflow logs are stored in the `./logs` directory for debugging.
+- The PostgreSQL database is accessible on port `5432`. You can connect using the credentials from `.env`.
+- Modify Airflow configurations by editing the `.env` or `docker-compose.yml` file.
+
+---
+
+This optimized README now gives clear, concise instructions on setting up the project, running it, and handling services with Docker.
 
 ## Step-by-Step Guide: How Data is Fetched from the API
 
