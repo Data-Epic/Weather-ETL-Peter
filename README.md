@@ -83,11 +83,11 @@ This will launch:
 2. Log in with the default credentials (`airflow`/`airflow`).
 3. Add your cities and countries in **Admin > Variables** (e.g., key: `CITIES`, value: `London, Ife, Lagos`).
 
-![Setting Environment Variables](images/dag_variables.png)
+![Setting Environment Variables](images/dag_variables.jpg)
 
 4. Navigate to the DAGs section to manually trigger `weather_etl_dag`, or wait for it to run according to its schedule.
 
-![Airflow DAG Execution](images/dag_dag.png)
+![Airflow DAG Execution](images/dag_dag.jpg)
 
 ### 6. Stopping and Cleaning Up Services
 To stop the services:
@@ -423,7 +423,7 @@ The DAG uses several configuration variables:
 Each task is dependent on the output of the previous task, creating a linear workflow for the ETL process. The DAG is scheduled to run every hour, ensuring that the database is regularly updated with the latest weather information for the specified cities.
 
 Airflow Variables
-![Airflow Variables Success](images/dag_variables.jpg)
+![Airflow Variables](images/dag_variables.jpg)
 
 
 Dag Workflow
