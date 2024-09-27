@@ -1,6 +1,4 @@
-Here’s an optimized and streamlined version of your README and project setup guide:
-
----
+# Weather-ETL-Peter
 
 # Weather ETL with Airflow and Docker
 
