@@ -15,12 +15,7 @@ repos:
     hooks:
     -   id: isort
         name: isort (python)
-        args: [--profile, black, --filter-files
-                    # , --append-only,
-                #  --skip-glob=**/dags/logger_config.py,
-                #  --skip-glob=**/dags/models.py,
-                #  --skip-glob=**/dags/weather_etl_dag.py,
-                ]
+        args: [--profile, black, --filter-files]
 -   repo: https://github.com/pycqa/flake8
     rev: 4.0.1
     hooks:
