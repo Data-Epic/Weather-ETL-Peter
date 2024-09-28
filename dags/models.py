@@ -1,11 +1,10 @@
 import os
 import sys
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 Base = declarative_base()
 
