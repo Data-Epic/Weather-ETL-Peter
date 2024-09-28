@@ -5,11 +5,24 @@ USER root
 RUN apt-get update && apt-get install -y \
     curl \
     wget \
-    vim \
     git \
     unzip \
-    jq \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    xz-utils \
+    libxml2-dev \
+    libffi-dev \
+    liblzma-dev \
     && rm -rf /var/lib/apt/lists/*
+
+RUN wget https://www.python.org/ftp/python/3.10.12/Python-3.10.12.tgz && \
+    tar xzf Python-3.10.12.tgz && \
+    cd Python-3.10.12 && \
+    ./configure --enable-optimizations && \
+    make altinstall && \
+    cd .. && \
+    rm -rf Python-3.10.12 Python-3.10.12.tgz
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -26,5 +39,7 @@ WORKDIR /opt/airflow
 RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
 COPY pyproject.toml poetry.lock ./
 
+RUN poetry env use python3.10
 RUN poetry install --no-dev --no-root
+
 COPY --chown=airflow:airflow dags/ ./dags
