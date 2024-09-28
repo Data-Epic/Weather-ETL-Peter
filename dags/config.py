@@ -2,12 +2,10 @@ import logging
 import os
 import sys
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from airflow.models import Variable
 
 from dags.logger_config import error_log_file_path, log_file_path
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 
 # set up logging
 logging.basicConfig(
