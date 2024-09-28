@@ -37,7 +37,6 @@ services:
       - .env
     volumes:
       - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
 
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
@@ -56,7 +55,6 @@ services:
       - .env
     volumes:
       - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
 
   airflow-triggerer:
     build: .
@@ -68,7 +66,5 @@ services:
       - .env
     volumes:
       - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
-
 volumes:
   postgres-db-volume:
