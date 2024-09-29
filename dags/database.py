@@ -21,7 +21,6 @@ Base.metadata.create_all(engine)
 
 @contextmanager
 def get_db() -> Generator[Session, None, None]:
-
     """
     Function to create a database session
 
@@ -36,16 +35,13 @@ def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
 
     try:
-
         logger.info("Database session opened")
         yield db
 
     except Exception as e:
-
         logger.error(f"Error occurred during database operation: {str(e)}")
         raise
 
     finally:
-
         logger.info("Closing database session")
         db.close()

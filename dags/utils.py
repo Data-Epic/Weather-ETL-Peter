@@ -66,7 +66,6 @@ def gen_hash_key_weatherfact() -> Dict[str, str]:
 
 
 def gen_hash_key_location_dim(data: dict) -> Dict[str, str]:
-
     """
     Function to generate a hash key for the location dimension table
 
@@ -127,7 +126,6 @@ def gen_hash_key_location_dim(data: dict) -> Dict[str, str]:
 
 
 def gen_hash_key_datedim(data: dict) -> Dict[str, str]:
-
     """
     Function to generate a hash key for the date data
 
@@ -187,7 +185,6 @@ def gen_hash_key_datedim(data: dict) -> Dict[str, str]:
 
 
 def gen_hash_key_weather_type_dim(data: dict) -> Dict[str, str]:
-
     """
     Function to generate a hash key for the weather type dimension data
 
@@ -251,7 +248,6 @@ def query_existing_data(
     db: Session,
     hash_function: Dict[str, str],
 ) -> Dict[str, Union[List[DeclarativeMeta], List[str], List[dict]]]:
-
     """
     Function to query existing data from the database
 
@@ -279,7 +275,6 @@ def query_existing_data(
             isinstance(db, Session) is True
             and isinstance(model, DeclarativeMeta) is True
         ):
-
             record_ids = []
             for record in data:
                 record_keys = list(record.keys())
@@ -314,7 +309,6 @@ def query_existing_data(
 def update_weather_fact_with_weather_type_id(
     fact_model: declarative_base, db: Session, record: dict
 ) -> Dict[str, str]:
-
     """
     Function to update the weather fact table with the weather type id
 
@@ -338,7 +332,6 @@ def update_weather_fact_with_weather_type_id(
             isinstance(db, Session) is True
             and isinstance(fact_model, DeclarativeMeta) is True
         ):
-
             try:
                 weather_fact_to_update = (
                     db.query(fact_model)
@@ -388,7 +381,6 @@ def update_weather_fact_with_weather_type_id(
 def insert_data_to_fact_table(
     model: declarative_base, db: Session, record: WeatherFact
 ) -> Dict[str, str]:
-
     """
     Function to insert data to the fact table
 
@@ -414,7 +406,6 @@ def insert_data_to_fact_table(
             isinstance(db, Session) is True
             and isinstance(model, DeclarativeMeta) is True
         ):
-
             try:
                 db_record = model(
                     id=gen_hash_key_weatherfact()["hash_key"],
@@ -465,7 +456,6 @@ def insert_data_to_fact_table(
 def update_data_to_fact_table(
     model: declarative_base, db: Session, data_to_update: WeatherFact, record: dict
 ) -> Dict[str, str]:
-
     """
     Function to update data to the fact table
 
@@ -491,7 +481,6 @@ def update_data_to_fact_table(
             isinstance(db, Session) is True
             and isinstance(model, DeclarativeMeta) is True
         ):
-
             try:
                 data_to_update.id = gen_hash_key_weatherfact()["hash_key"]
                 data_to_update.location_id = record["id"]
@@ -538,7 +527,6 @@ def update_data_to_fact_table(
 
 
 def retrieve_country_code(country: str) -> Dict[str, str]:
-
     """
     Function to retrieve the country code from the restcountries API
     Args:
@@ -556,7 +544,6 @@ def retrieve_country_code(country: str) -> Dict[str, str]:
 
     """
     try:
-
         url = f"https://restcountries.com/v3.1/name/{country}"
         response = requests.get(url)
         data = response.json()[0]
@@ -591,7 +578,6 @@ def retrieve_country_code(country: str) -> Dict[str, str]:
 
 
 def retrieve_country_codes(country_list: list, country_name: str) -> Dict[str, str]:
-
     """
     Function to retrieve the country codes from a list of country names
 
@@ -645,7 +631,6 @@ def retrieve_country_codes(country_list: list, country_name: str) -> Dict[str, s
 def get_data_from_country_code(
     country_code: str, city_name: str, fields: list, API_KEY: str
 ) -> Dict[str, Union[str, Dict[str, str]]]:
-
     """
     Function to retrieve data from a country code
 
