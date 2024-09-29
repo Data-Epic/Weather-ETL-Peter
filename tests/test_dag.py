@@ -685,7 +685,7 @@ def test_load_records_to_weather_type_dim() -> None:
     Test the load_records_to_weather_type_dim function in the weather_etl_dag module
 
     The function should return an XComArg object that can be used to retrieve the transformed weather records
-    for the given fields from the Airflow XCom.
+    for the given fields from the Airflow XCom
 
     The function should also call the requests.get function with the correct URL
     and return the result from the XCom.
