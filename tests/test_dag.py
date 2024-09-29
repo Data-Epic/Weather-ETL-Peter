@@ -661,7 +661,7 @@ def test_join_date_dim_with_weather_fact() -> None:
                 }
             ],
         }
-        result = join_date_dim_with_weather_fact(MagicMock(), MagicMock(), "{}")
+        result = join_date_dim_with_weather_fact(MagicMock(), MagicMock())
         assert isinstance(result, XComArg)
 
         mock_ti = MagicMock()
