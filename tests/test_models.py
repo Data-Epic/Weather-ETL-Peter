@@ -7,7 +7,6 @@ from sqlalchemy.orm import sessionmaker
 from dags.models import Base, DateDim, LocationDim, WeatherFact, WeatherTypeDim
 
 
-# Set up an in-memory SQLite database for testing
 @pytest.fixture(scope="module")
 def test_db():
     """

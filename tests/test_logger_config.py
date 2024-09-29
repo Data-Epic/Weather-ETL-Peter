@@ -4,7 +4,7 @@ import pytest
 
 from dags.logger_config import create_log_file
 
-# create a log directory for the tests
+
 curr_dir = os.path.dirname(os.path.abspath(__file__))
 base_dir = os.path.dirname(curr_dir)
 var_dir = os.path.join(base_dir, "var")
@@ -14,7 +14,6 @@ if not os.path.exists(var_dir):
 
 
 def test_create_log_file() -> None:
-
     """
     Test to create a log file with valid input arguments
 
@@ -34,7 +33,6 @@ def test_create_log_file() -> None:
 
 
 def test_create_log_file_invalid_file_format() -> None:
-
     """
     Test to create a log file with invalid file format
 
@@ -52,7 +50,6 @@ def test_create_log_file_invalid_file_format() -> None:
 
 
 def test_create_log_file_invalid_input_arguments() -> None:
-
     """
     Test to create a log file with invalid input arguments
 

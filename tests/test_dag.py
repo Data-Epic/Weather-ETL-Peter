@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from airflow.models.xcom_arg import XComArg
 
+
 from dags.weather_etl_dag import (
     create_date_dim,
     get_country_code,

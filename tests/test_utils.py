@@ -26,15 +26,27 @@ engine = create_engine("sqlite:///:memory:")
 SessionLocal = sessionmaker(bind=engine)
 
 
-def test_gen_hash_key_weatherfact():
+def test_gen_hash_key_weatherfact() -> None:
+    """
+    Tests the gen_hash_key_weatherfact function for a successful case
+
+    Returns:
+        None
+    """
     result = gen_hash_key_weatherfact()
     assert result["status"] == "success"
     assert result["message"] == "Hash key generated successfully"
     assert isinstance(result["hash_key"], str)
-    assert len(result["hash_key"]) == 64  # SHA256 produces a 64-character hex string
+    assert len(result["hash_key"]) == 64
 
 
-def test_gen_hash_key_location_dim_success():
+def test_gen_hash_key_location_dim_success() -> None:
+    """
+    Tests the gen_hash_key_location_dim function for a successful case
+
+    Returns:
+        None
+    """
     data = {"country": "USA", "state": "California", "city": "Los Angeles"}
     result = gen_hash_key_location_dim(data)
     assert result["status"] == "success"
@@ -43,7 +55,13 @@ def test_gen_hash_key_location_dim_success():
     assert len(result["hash_key"]) == 64
 
 
-def test_gen_hash_key_location_dim_case_insensitive():
+def test_gen_hash_key_location_dim_case_insensitive() -> None:
+    """
+    Tests the gen_hash_key_location_dim function for case-insensitive input
+
+    Returns:
+        None
+    """
     data1 = {"country": "USA", "state": "California", "city": "Los Angeles"}
     data2 = {"country": "usa", "state": "CALIFORNIA", "city": "los angeles"}
     result1 = gen_hash_key_location_dim(data1)
@@ -51,7 +69,14 @@ def test_gen_hash_key_location_dim_case_insensitive():
     assert result1["hash_key"] == result2["hash_key"]
 
 
-def test_gen_hash_key_location_dim_invalid_input():
+def test_gen_hash_key_location_dim_invalid_input() -> None:
+    """
+    Tests the gen_hash_key_location_dim function with invalid input
+
+    Returns:
+        None
+    """
+
     result = gen_hash_key_location_dim("invalid")
     assert result["status"] == "error"
     assert (
@@ -60,15 +85,27 @@ def test_gen_hash_key_location_dim_invalid_input():
     )
 
 
-def test_gen_hash_key_location_dim_missing_key():
-    data = {"country": "USA", "state": "California"}  # missing 'city'
+def test_gen_hash_key_location_dim_missing_key() -> None:
+    """
+    Tests the gen_hash_key_location_dim function with missing keys
+
+    Returns:
+        None
+    """
+    data = {"country": "USA", "state": "California"}
     result = gen_hash_key_location_dim(data)
     assert result["status"] == "error"
     assert result["message"] == "Unable to generate hash key for location data"
     assert result["error"] == "'city'"
 
 
-def test_gen_hash_key_datedim_success():
+def test_gen_hash_key_datedim_success() -> None:
+    """
+    Tests the gen_hash_key_datedim function for a successful case
+
+    Returns:
+        None
+    """
     data = {"date": "2023-05-22"}
     result = gen_hash_key_datedim(data)
     assert result["status"] == "success"
@@ -77,7 +114,13 @@ def test_gen_hash_key_datedim_success():
     assert len(result["hash_key"]) == 64
 
 
-def test_gen_hash_key_datedim_invalid_input():
+def test_gen_hash_key_datedim_invalid_input() -> None:
+    """
+    Tests the gen_hash_key_datedim function with invalid input
+
+    Returns:
+        None
+    """
     result = gen_hash_key_datedim("invalid")
     assert result["status"] == "error"
     assert (
@@ -86,7 +129,13 @@ def test_gen_hash_key_datedim_invalid_input():
     )
 
 
-def test_gen_hash_key_datedim_missing_key():
+def test_gen_hash_key_datedim_missing_key() -> None:
+    """
+    Tests the gen_hash_key_datedim function with missing keys
+
+    Returns:
+        None
+    """
     data = {"wrong_key": "2023-05-22"}
     result = gen_hash_key_datedim(data)
     assert result["status"] == "error"
@@ -94,7 +143,13 @@ def test_gen_hash_key_datedim_missing_key():
     assert result["error"] == "'date'"
 
 
-def test_gen_hash_key_weather_type_dim_success():
+def test_gen_hash_key_weather_type_dim_success() -> None:
+    """
+    Tests the gen_hash_key_weather_type_dim function for a successful case
+
+    Returns:
+        None
+    """
     data = {"weather": "Sunny"}
     result = gen_hash_key_weather_type_dim(data)
     assert result["status"] == "success"
@@ -103,7 +158,13 @@ def test_gen_hash_key_weather_type_dim_success():
     assert len(result["hash_key"]) == 64
 
 
-def test_gen_hash_key_weather_type_dim_case_insensitive():
+def test_gen_hash_key_weather_type_dim_case_insensitive() -> None:
+    """
+    Tests the gen_hash_key_weather_type_dim function for case-insensitive input
+
+    Returns:
+        None
+    """
     data1 = {"weather": "Sunny"}
     data2 = {"weather": "SUNNY"}
     result1 = gen_hash_key_weather_type_dim(data1)
@@ -111,7 +172,13 @@ def test_gen_hash_key_weather_type_dim_case_insensitive():
     assert result1["hash_key"] == result2["hash_key"]
 
 
-def test_gen_hash_key_weather_type_dim_invalid_input():
+def test_gen_hash_key_weather_type_dim_invalid_input() -> None:
+    """
+    Tests the gen_hash_key_weather_type_dim function with invalid input
+
+    Returns:
+        None
+    """
     result = gen_hash_key_weather_type_dim("invalid")
     assert result["status"] == "error"
     assert (
@@ -120,7 +187,13 @@ def test_gen_hash_key_weather_type_dim_invalid_input():
     )
 
 
-def test_gen_hash_key_weather_type_dim_missing_key():
+def test_gen_hash_key_weather_type_dim_missing_key() -> None:
+    """
+    Tests the gen_hash_key_weather_type_dim function with missing keys
+
+    Returns:
+        None
+    """
     data = {"wrong_key": "Sunny"}
     result = gen_hash_key_weather_type_dim(data)
     assert result["status"] == "error"
@@ -128,17 +201,26 @@ def test_gen_hash_key_weather_type_dim_missing_key():
     assert result["error"] == "'weather'"
 
 
-# Test for consistent hash generation
-def test_hash_consistency():
-    # Test that the same input always produces the same hash
+def test_hash_consistency() -> None:
+    """
+    Tests the consistency of the hash key generation function
+
+    Returns:
+        None
+    """
     data = {"country": "USA", "state": "California", "city": "Los Angeles"}
     result1 = gen_hash_key_location_dim(data)
     result2 = gen_hash_key_location_dim(data)
     assert result1["hash_key"] == result2["hash_key"]
 
 
-# Test for uniqueness of hashes
-def test_hash_uniqueness():
+def test_hash_uniqueness() -> None:
+    """
+    Tests the uniqueness of the hash key generation function
+
+    Returns:
+        None
+    """
     data1 = {"country": "USA", "state": "California", "city": "Los Angeles"}
     data2 = {"country": "USA", "state": "California", "city": "San Francisco"}
     result1 = gen_hash_key_location_dim(data1)
@@ -146,8 +228,13 @@ def test_hash_uniqueness():
     assert result1["hash_key"] != result2["hash_key"]
 
 
-# Test for handling of special characters
-def test_special_characters():
+def test_special_characters() -> None:
+    """
+    Tests the location dimension hash key generation function with special characters
+
+    Returns:
+        None
+    """
     data = {"country": "USA", "state": "California", "city": "San Francisco!@#$%^&*()"}
     result = gen_hash_key_location_dim(data)
     assert result["status"] == "success"
