@@ -1,5 +1,7 @@
 import os
 import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from datetime import datetime, timedelta
 from typing import Dict, List, Union
 
@@ -34,14 +36,11 @@ from dags.utils import (
     update_weather_fact_with_weather_type_id,
 )
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 
 @task()
 def get_country_code(
-    countries: Union[List[str], str] = AIRFLOW_COUNTRY_NAMES
+    countries: Union[List[str], str] = AIRFLOW_COUNTRY_NAMES,
 ) -> Dict[str, Union[str, List[str]]]:
-
     """
     This function is used to get the country code of the country(s) specified
 
@@ -283,7 +282,7 @@ def restructure_geographical_data(
 
 @task()
 def process_geographical_records(
-    weather_fields_dict: Dict[str, Union[List[dict], List[tuple]]]
+    weather_fields_dict: Dict[str, Union[List[dict], List[tuple]]],
 ) -> List[dict]:
     """
     This function is used to get the weather records from the retrieve weather fields dictionary
@@ -324,7 +323,7 @@ def process_geographical_records(
 
 @task()
 def get_longitude_latitude(
-    weather_fields: Dict[str, Union[str, List[dict]]]
+    weather_fields: Dict[str, Union[str, List[dict]]],
 ) -> List[tuple]:
     """
     This function is used to get the longitude and latitude of the cities from the weather fields
@@ -359,7 +358,6 @@ def get_longitude_latitude(
 def merge_current_weather_data(
     lon_lat: List[tuple], excluded_fields: str, weather_fields: List[dict], api_key: str
 ) -> List[dict]:
-
     """
     This function is used to get the current weather of cities in a country
     by using the longitude and latitude of the cities in an API call.
@@ -452,7 +450,7 @@ def merge_current_weather_data(
 
 @task()
 def get_merged_weather_records(
-    merged_weather: Dict[str, Union[str, List[dict]]]
+    merged_weather: Dict[str, Union[str, List[dict]]],
 ) -> List[dict]:
     """
     This function is used to get the merged weather records from the merge weather data dictionary
@@ -508,7 +506,6 @@ def transform_weather_records(weather_records: List[dict]) -> List[dict]:
 
     if isinstance(weather_records, List):
         try:
-
             transformed_weather_records = []
             for record in weather_records:
                 transformed_record = {}
@@ -831,7 +828,7 @@ def create_date_dim(
 
 @task()
 def join_date_dim_with_weather_fact(
-    fact_model: DeclarativeMeta, date_model: DeclarativeMeta, json_str: str
+    fact_model: DeclarativeMeta, date_model: DeclarativeMeta
 ) -> Dict[str, Union[str, List[dict]]]:
     """
     This function is used to join the Date Dimension table with the Weather Fact table in the postgres database.
@@ -841,7 +838,7 @@ def join_date_dim_with_weather_fact(
     Args:
         fact_model(DeclarativeMeta): The Weather Fact model
         date_model(DeclarativeMeta): The Date Dimension model
-        json_str(str): The JSON string containing the weather records
+
     Returns:
         Dict[str, Union[str, List[dict]]]: Dictionary containing the status, message and weather records
 
@@ -855,41 +852,40 @@ def join_date_dim_with_weather_fact(
     """
     try:
         with get_db() as db:
-            if json_str:
-                weather_records = db.query(fact_model).all()
-                date_records = db.query(date_model).all()
-                if weather_records and date_records:
-                    for record in weather_records:
-                        for date in date_records:
-                            if record.date == date.date:
-                                record.date_id = date.id
-                                db.add(record)
-                    db.commit()
-                    logger.info(
-                        {
-                            "status": "success",
-                            "message": "Date records have been joined with the weather fact table",
-                            "weather_records": weather_records[:1],
-                        }
-                    )
-                    return {
+            weather_records = db.query(fact_model).all()
+            date_records = db.query(date_model).all()
+            if weather_records and date_records:
+                for record in weather_records:
+                    for date in date_records:
+                        if record.date == date.date:
+                            record.date_id = date.id
+                            db.add(record)
+                db.commit()
+                logger.info(
+                    {
                         "status": "success",
                         "message": "Date records have been joined with the weather fact table",
                         "weather_records": weather_records[:1],
                     }
-                else:
-                    error_logger.error(
-                        {
-                            "status": "error",
-                            "message": "No records found in the date or weather fact table",
-                            "error": "No records found",
-                        }
-                    )
-                    return {
+                )
+                return {
+                    "status": "success",
+                    "message": "Date records have been joined with the weather fact table",
+                    "weather_records": weather_records[:1],
+                }
+            else:
+                error_logger.error(
+                    {
                         "status": "error",
                         "message": "No records found in the date or weather fact table",
                         "error": "No records found",
                     }
+                )
+                return {
+                    "status": "error",
+                    "message": "No records found in the date or weather fact table",
+                    "error": "No records found",
+                }
     except Exception as e:
         error_logger.error(
             {
@@ -1054,7 +1050,6 @@ def weather_etl_dag():
     merged_weather_records = get_merged_weather_records(merging_weather_data)
     transform_records = transform_weather_records(merged_weather_records)
 
-    # task dependencies
     (
         load_records_to_location_dim(
             transform_records, LocationDim, WeatherFact, gen_hash_key_location_dim
@@ -1071,7 +1066,7 @@ def weather_etl_dag():
             DateDim,
             gen_hash_key_datedim,
         )
-        >> join_date_dim_with_weather_fact(WeatherFact, DateDim, json_str="")
+        >> join_date_dim_with_weather_fact(WeatherFact, DateDim)
     )
 
 
