@@ -274,6 +274,7 @@ The processed weather records are loaded into the database using a delete-write 
 1. DAG Definition:
 The DAG is defined with the following parameters:
 - Start date: September 19, 2024
+- schedule interval: 1 hour
 - Description: "Weather ETL DAG that fetches weather data from the OpenWeather API, transforms the data and loads it into a Postgres database"
 - Tags: ['weather']
 - Max active runs: 1
